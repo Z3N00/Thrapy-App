@@ -196,7 +196,7 @@ textarea:focus {
 
 /* Custom gray scale for the theme */
 .bg-gray-750 {
-  background-color: #2d3748;
+  background-color: #374151;
 }
 
 .text-gray-150 {
@@ -204,7 +204,7 @@ textarea:focus {
 }
 
 .border-gray-750 {
-  border-color: #2d3748;
+  border-color: #374151;
 }
 
 /* Therapy specific styles */
