@@ -202,6 +202,27 @@ const Home = () => {
               </div>
             </div>
           )}
+
+          {user && user.role === "admin" && (
+            <div className="mt-12 p-6 bg-gray-800 border border-gray-700 rounded-xl">
+              <h3 className="text-xl font-semibold text-gray-100 mb-4">🔧 Administrator Dashboard</h3>
+              <p className="text-gray-300 mb-4">Full platform access • Free sessions • Database management</p>
+              <div className="flex justify-center space-x-4">
+                <Link
+                  to="/admin"
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors"
+                >
+                  Admin Panel
+                </Link>
+                <Link
+                  to="/admin/stats"
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg transition-colors"
+                >
+                  Platform Stats
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
