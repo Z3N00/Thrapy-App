@@ -165,6 +165,18 @@ backend:
         agent: "main"
         comment: "Implemented payment records with automatic fee calculation (30% platform fee for therapists), payment history tracking"
 
+  - task: "Admin account system with full access"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added admin role with free access to all services, database management endpoints, platform statistics, user management. Admin account created: admin@thrapy.com / admin123"
+
   - task: "Therapist availability management"
     implemented: true
     working: "NA"
