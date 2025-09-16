@@ -39,7 +39,7 @@ api_router = APIRouter(prefix="/api")
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str
-    role: str = "client"  # client or therapist
+    role: str = "client"  # client, therapist, or admin
 
 class UserCreate(UserBase):
     password: str
