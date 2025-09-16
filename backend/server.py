@@ -193,6 +193,36 @@ async def register(user: UserCreate):
         user=user_response
     )
 
+@api_router.post("/auth/create-admin")
+async def create_admin_account():
+    # Check if admin already exists
+    admin_exists = await db.users.find_one({"role": "admin"})
+    if admin_exists:
+        raise HTTPException(status_code=400, detail="Admin account already exists")
+    
+    # Create admin user
+    admin_id = str(uuid.uuid4())
+    admin_password = "admin123"  # Default password - should be changed
+    hashed_password = hash_password(admin_password)
+    
+    admin_doc = {
+        "id": admin_id,
+        "email": "admin@thrapy.com",
+        "full_name": "Thrapy Administrator",
+        "role": "admin",
+        "password_hash": hashed_password,
+        "created_at": datetime.now(timezone.utc)
+    }
+    
+    await db.users.insert_one(admin_doc)
+    
+    return {
+        "message": "Admin account created successfully",
+        "email": "admin@thrapy.com",
+        "password": admin_password,
+        "note": "Please change the password after first login"
+    }
+
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(user_login: UserLogin):
     user = await db.users.find_one({"email": user_login.email})
