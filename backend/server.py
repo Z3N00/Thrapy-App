@@ -282,9 +282,12 @@ async def create_session(
 ):
     session_id = str(uuid.uuid4())
     
+    # Admin users get free access to all services
+    is_admin = current_user.role == "admin"
+    
     # Calculate cost based on session type
     if session_data.session_type == "ai":
-        cost = 5.0 * (session_data.duration_minutes / 60)  # $5 per hour
+        cost = 0.0 if is_admin else 5.0 * (session_data.duration_minutes / 60)  # $5 per hour, free for admin
     elif session_data.session_type == "therapist":
         if not session_data.therapist_id:
             raise HTTPException(status_code=400, detail="Therapist ID required for therapist sessions")
@@ -293,7 +296,7 @@ async def create_session(
         if not therapist:
             raise HTTPException(status_code=404, detail="Therapist not found")
         
-        cost = therapist["hourly_rate"] * (session_data.duration_minutes / 60)
+        cost = 0.0 if is_admin else therapist["hourly_rate"] * (session_data.duration_minutes / 60)
     else:
         raise HTTPException(status_code=400, detail="Invalid session type")
     
@@ -306,29 +309,31 @@ async def create_session(
         "duration_minutes": session_data.duration_minutes,
         "cost": cost,
         "status": "scheduled",
+        "is_admin_session": is_admin,
         "created_at": datetime.now(timezone.utc)
     }
     
     await db.sessions.insert_one(session_doc)
     
-    # Create payment record
-    payment_doc = {
-        "id": str(uuid.uuid4()),
-        "user_id": current_user.id,
-        "session_id": session_id,
-        "amount": cost,
-        "payment_type": f"{session_data.session_type}_session",
-        "status": "completed",
-        "created_at": datetime.now(timezone.utc)
-    }
-    
-    if session_data.session_type == "therapist":
-        platform_fee = cost * 0.30  # 30% platform fee
-        therapist_earnings = cost * 0.70  # 70% to therapist
-        payment_doc["platform_fee"] = platform_fee
-        payment_doc["therapist_earnings"] = therapist_earnings
-    
-    await db.payments.insert_one(payment_doc)
+    # Create payment record only if not admin
+    if not is_admin and cost > 0:
+        payment_doc = {
+            "id": str(uuid.uuid4()),
+            "user_id": current_user.id,
+            "session_id": session_id,
+            "amount": cost,
+            "payment_type": f"{session_data.session_type}_session",
+            "status": "completed",
+            "created_at": datetime.now(timezone.utc)
+        }
+        
+        if session_data.session_type == "therapist":
+            platform_fee = cost * 0.30  # 30% platform fee
+            therapist_earnings = cost * 0.70  # 70% to therapist
+            payment_doc["platform_fee"] = platform_fee
+            payment_doc["therapist_earnings"] = therapist_earnings
+        
+        await db.payments.insert_one(payment_doc)
     
     return SessionResponse(**session_doc)
 
