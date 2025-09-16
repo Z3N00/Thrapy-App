@@ -376,6 +376,7 @@ const Register = () => {
             >
               <option value="client">Client seeking therapy</option>
               <option value="therapist">Licensed therapist</option>
+              <option value="admin">Administrator</option>
             </select>
           </div>
           
