@@ -410,6 +410,84 @@ async def get_payment_history(current_user: UserResponse = Depends(get_current_u
     payments = await db.payments.find({"user_id": current_user.id}).to_list(100)
     return [PaymentRecord(**payment) for payment in payments]
 
+# Admin Routes
+@api_router.get("/admin/users", response_model=List[UserResponse])
+async def get_all_users(admin_user: UserResponse = Depends(get_admin_user)):
+    users = await db.users.find().to_list(1000)
+    return [UserResponse(**user) for user in users]
+
+@api_router.get("/admin/sessions")
+async def get_all_sessions(admin_user: UserResponse = Depends(get_admin_user)):
+    sessions = await db.sessions.find().to_list(1000)
+    return sessions
+
+@api_router.get("/admin/payments")
+async def get_all_payments(admin_user: UserResponse = Depends(get_admin_user)):
+    payments = await db.payments.find().to_list(1000)
+    return payments
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_user(user_id: str, admin_user: UserResponse = Depends(get_admin_user)):
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User deleted successfully"}
+
+@api_router.put("/admin/users/{user_id}/role")
+async def update_user_role(user_id: str, new_role: str, admin_user: UserResponse = Depends(get_admin_user)):
+    if new_role not in ["client", "therapist", "admin"]:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": new_role}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": f"User role updated to {new_role}"}
+
+@api_router.get("/admin/stats")
+async def get_platform_stats(admin_user: UserResponse = Depends(get_admin_user)):
+    total_users = await db.users.count_documents({})
+    total_clients = await db.users.count_documents({"role": "client"})
+    total_therapists = await db.users.count_documents({"role": "therapist"})
+    total_sessions = await db.sessions.count_documents({})
+    total_ai_sessions = await db.sessions.count_documents({"session_type": "ai"})
+    total_therapist_sessions = await db.sessions.count_documents({"session_type": "therapist"})
+    
+    # Calculate revenue
+    total_revenue_pipeline = [
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]
+    revenue_result = await db.payments.aggregate(total_revenue_pipeline).to_list(1)
+    total_revenue = revenue_result[0]["total"] if revenue_result else 0
+    
+    platform_fee_pipeline = [
+        {"$match": {"platform_fee": {"$exists": True}}},
+        {"$group": {"_id": None, "total": {"$sum": "$platform_fee"}}}
+    ]
+    platform_fee_result = await db.payments.aggregate(platform_fee_pipeline).to_list(1)
+    platform_earnings = platform_fee_result[0]["total"] if platform_fee_result else 0
+    
+    return {
+        "users": {
+            "total": total_users,
+            "clients": total_clients,
+            "therapists": total_therapists
+        },
+        "sessions": {
+            "total": total_sessions,
+            "ai_sessions": total_ai_sessions,
+            "therapist_sessions": total_therapist_sessions
+        },
+        "revenue": {
+            "total_revenue": total_revenue,
+            "platform_earnings": platform_earnings
+        }
+    }
+
 # Health check
 @api_router.get("/health")
 async def health_check():
